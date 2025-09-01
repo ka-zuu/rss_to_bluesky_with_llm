@@ -2,3 +2,5 @@ feedparser
 google-generativeai
 atproto
 python-dotenv
+pytest
+pytest-mock
