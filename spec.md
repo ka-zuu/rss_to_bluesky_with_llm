@@ -41,4 +41,4 @@
 
 ## 5. cronジョブの例
 スクリプトを3時間ごとに実行する場合の例：
-`0 */3 * * * /usr/bin/python3 /path/to/your/script/main.py`
+`0 */3 * * * /path/to/your/script/venv/bin/python /path/to/your/script/main.py`

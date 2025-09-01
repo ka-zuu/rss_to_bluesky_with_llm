@@ -24,7 +24,14 @@ cd rss-to-bluesky-with-llm
 
 ### 2. 依存関係のインストール
 
-必要なPythonライブラリをインストールします。
+まず、プロジェクト用の仮想環境を作成し、有効化します。これにより、システムのPython環境を汚さずにライブラリを管理できます。
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+次に、必要なPythonライブラリを仮想環境内にインストールします。
 
 ```bash
 pip install -r requirements.txt
@@ -59,11 +66,14 @@ python main.py
 
 ### 定期実行 (cron)
 
-Linuxサーバーなどで定期的に実行したい場合は、cronジョブを利用するのが便利です。例えば、3時間ごとにスクリプトを実行するには、`crontab -e` で以下の行を追加します。
-※`/path/to/your/script` の部分は、実際のプロジェクトの絶対パスに置き換えてください。
+Linuxサーバーなどで定期的に実行したい場合は、cronジョブを利用するのが便利です。
+
+**注意:** cronから実行する場合、仮想環境内のPythonを指定する必要があります。
+
+例えば、3時間ごとにスクリプトを実行するには、`crontab -e` で以下の行を追加します。`/path/to/your/script` の部分は、実際のプロジェクトの絶対パスに置き換えてください。
 
 ```crontab
-0 */3 * * * /usr/bin/python3 /path/to/your/script/main.py >> /path/to/your/script/cron.log 2>&1
+0 */3 * * * /path/to/your/script/venv/bin/python /path/to/your/script/main.py >> /path/to/your/script/cron.log 2>&1
 ```
 
 ## プロジェクト構造
