@@ -1,20 +1,10 @@
-import os
 import google.generativeai as genai
 from typing import List, Dict
-
-def configure_gemini():
-    """Gemini APIキーを設定する"""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEYが設定されていません。")
-    genai.configure(api_key=api_key)
 
 def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """Gemini APIを使用して記事を重要度順にランク付けする"""
     if not articles:
         return []
-
-    configure_gemini()
     model = genai.GenerativeModel('gemini-pro')
 
     # プロンプトの作成
@@ -65,7 +55,6 @@ def summarize_article(article_content: str) -> str:
     if not article_content:
         return ""
 
-    configure_gemini()
     model = genai.GenerativeModel('gemini-pro')
 
     prompt = f"以下の文章を日本語3文で簡潔に要約してください。\n\n---\n{article_content}\n---"
