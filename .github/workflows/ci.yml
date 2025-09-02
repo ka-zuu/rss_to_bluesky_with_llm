@@ -1,0 +1,30 @@
+name: Python application test
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Test with pytest
+      env:
+        # テストはモック化されているため、実際の値は不要だが、
+        # 環境変数の存在チェックなどがある場合に備えてダミーの値を設定しておく
+        RSS_URLS: "http://dummy-rss-url.com"
+        GEMINI_API_KEY: "dummy_api_key"
+        BLUESKY_HANDLE: "dummy_handle"
+        BLUESKY_APP_PASSWORD: "dummy_password"
+      run: |
+        pytest
