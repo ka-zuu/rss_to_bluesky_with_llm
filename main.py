@@ -5,6 +5,7 @@ import rss_fetcher
 import gemini_processor
 import bluesky_poster
 import grapheme
+from atproto import models
 
 # 要約する記事の最大数
 MAX_SUMMARIES = 5
@@ -64,20 +65,20 @@ def main():
         return
 
     # 5. Blueskyへの投稿準備
-    post_texts = []
+    posts = []
 
     # 上位5件の記事に絞り込む
     top_articles = ranked_articles[:5]
 
     # 親投稿のテキストを生成
-    parent_post_text_parts = []
+    parent_post_text_parts = ["【最新記事一覧】"]
     for i, article in enumerate(top_articles):
         parent_post_text_parts.append(f"{i+1}. {article['title']}")
     parent_post_text = "\n".join(parent_post_text_parts)
 
     # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
     parent_post_text = truncate_graphemes(parent_post_text, 300)
-    post_texts.append(parent_post_text)
+    posts.append({'text': parent_post_text})
 
     # 6. 上位記事の要約とリプライ準備
     print("上位記事の要約を生成中...")
@@ -86,14 +87,26 @@ def main():
     for article in articles_to_summarize:
         summary = gemini_processor.summarize_article(article['content'])
         if summary:
-            reply_text = f"【要約】{article['title']}\n\n{summary}\n\n記事URL:\n{article['link']}"
+            # 投稿テキストを作成
+            reply_text = f"【要約】{article['title']}\n\n{summary}"
             # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
             reply_text = truncate_graphemes(reply_text, 300)
-            post_texts.append(reply_text)
+
+            # 外部リンクの埋め込みを作成
+            # BlueskyサーバーがURLからカード情報を自動的に取得する
+            embed_external = models.AppBskyEmbedExternal.Main(
+                external=models.AppBskyEmbedExternal.External(
+                    uri=article['link'],
+                    title=article['title'],
+                    description=summary, # 要約をdescriptionとして使用
+                )
+            )
+
+            posts.append({'text': reply_text, 'embed': embed_external})
 
     # 7. Blueskyへのスレッド投稿
     print("Blueskyへスレッドを投稿中...")
-    success = bluesky_poster.post_thread(post_texts)
+    success = bluesky_poster.post_thread(posts)
 
     # 8. データベースの更新
     if success:

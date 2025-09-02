@@ -31,12 +31,22 @@ def mock_atproto_client(mocker):
 
 def test_post_thread_success(mock_atproto_client):
     """スレッド投稿が成功し、rootとparentが正しく設定されているかのテスト"""
-    post_texts = ["Parent post", "Reply 1", "Reply 2"]
+    embed_external = models.AppBskyEmbedExternal.Main(
+        external=models.AppBskyEmbedExternal.External(
+            uri='https://example.com',
+            title='Example',
+            description='This is an example link.'
+        )
+    )
+    posts = [
+        {'text': "Parent post"},
+        {'text': "Reply 1", 'embed': embed_external},
+        {'text': "Reply 2"}
+    ]
 
     # send_postが返すモックオブジェクトを事前に作成
-    # send_postが返すオブジェクトを事前に作成
     mock_refs = []
-    for i in range(len(post_texts)):
+    for i in range(len(posts)):
         ref = models.ComAtprotoRepoStrongRef.Main(
             uri=f"at://did:plc:fake/app.bsky.feed.post/post{i}",
             cid=f"cid{i}"
@@ -46,7 +56,7 @@ def test_post_thread_success(mock_atproto_client):
     # MagicMockのsend_postメソッドのside_effectを設定
     mock_atproto_client.send_post.side_effect = mock_refs
 
-    result = post_thread(post_texts)
+    result = post_thread(posts)
 
     assert result is True
     mock_atproto_client.login.assert_called_once_with("user.bsky.social", "password1234")
@@ -55,11 +65,13 @@ def test_post_thread_success(mock_atproto_client):
     # 1. 親投稿の検証
     first_call_args = mock_atproto_client.send_post.call_args_list[0]
     assert first_call_args.kwargs['text'] == "Parent post"
+    assert first_call_args.kwargs['embed'] is None
     assert 'reply_to' not in first_call_args.kwargs
 
     # 2. 最初の返信の検証
     second_call_args = mock_atproto_client.send_post.call_args_list[1]
     assert second_call_args.kwargs['text'] == "Reply 1"
+    assert second_call_args.kwargs['embed'] == embed_external
     reply_to_1 = second_call_args.kwargs['reply_to']
     assert isinstance(reply_to_1, models.AppBskyFeedPost.ReplyRef)
     # rootは親投稿の参照
@@ -72,6 +84,7 @@ def test_post_thread_success(mock_atproto_client):
     # 3. 2番目の返信の検証
     third_call_args = mock_atproto_client.send_post.call_args_list[2]
     assert third_call_args.kwargs['text'] == "Reply 2"
+    assert third_call_args.kwargs['embed'] is None
     reply_to_2 = third_call_args.kwargs['reply_to']
     assert isinstance(reply_to_2, models.AppBskyFeedPost.ReplyRef)
     # rootは親投稿の参照
@@ -83,20 +96,20 @@ def test_post_thread_success(mock_atproto_client):
 
 def test_post_single_post_success(mock_atproto_client):
     """単一投稿が成功するかのテスト"""
-    post_texts = ["Just one post"]
+    posts = [{'text': "Just one post"}]
 
-    result = post_thread(post_texts)
+    result = post_thread(posts)
 
     mock_atproto_client.login.assert_called_once()
-    mock_atproto_client.send_post.assert_called_once_with(text="Just one post")
+    mock_atproto_client.send_post.assert_called_once_with(text="Just one post", embed=None)
     assert result is True
 
 def test_post_thread_api_error(mock_atproto_client):
     """APIエラー時にFalseを返すかのテスト"""
     mock_atproto_client.send_post.side_effect = Exception("API Error")
 
-    post_texts = ["Parent post", "Reply 1"]
-    result = post_thread(post_texts)
+    posts = [{'text': "Parent post"}, {'text': "Reply 1"}]
+    result = post_thread(posts)
 
     assert result is False
 
@@ -109,8 +122,8 @@ def test_post_thread_login_error(mock_atproto_client):
     """ログイン失敗時にFalseを返すかのテスト"""
     mock_atproto_client.login.side_effect = Exception("Login failed")
 
-    post_texts = ["Some post"]
-    result = post_thread(post_texts)
+    posts = [{'text': "Some post"}]
+    result = post_thread(posts)
 
     mock_atproto_client.send_post.assert_not_called()
     assert result is False
