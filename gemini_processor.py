@@ -1,5 +1,13 @@
 import google.generativeai as genai
 from typing import List, Dict
+import os
+
+def configure_gemini():
+    """Gemini APIキーを設定する。環境変数から読み込む。"""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("環境変数 GEMINI_API_KEY が設定されていません。")
+    genai.configure(api_key=api_key)
 
 def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """Gemini APIを使用して記事を重要度順にランク付けする"""

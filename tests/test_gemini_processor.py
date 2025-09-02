@@ -30,7 +30,7 @@ def test_configure_gemini_success(mocker, mock_gemini):
 def test_configure_gemini_failure(mocker):
     """GEMINI_API_KEYが設定されていない場合にValueErrorを送出するかのテスト"""
     mocker.patch.dict(os.environ, clear=True)
-    with pytest.raises(ValueError, match="GEMINI_API_KEYが設定されていません。"):
+    with pytest.raises(ValueError, match="環境変数 GEMINI_API_KEY が設定されていません。"):
         configure_gemini()
 
 def test_rank_articles_success(mocker, mock_gemini):

@@ -5,6 +5,7 @@ from main import main
 @pytest.fixture
 def mock_modules(mocker):
     """すべての依存モジュールをモック化するフィクスチャ"""
+    # 成功系のテストでは、必要な環境変数が設定されていることを前提とする
     mocker.patch.dict(os.environ, {"RSS_URLS": "http://test.com/rss"})
 
     mock_db = mocker.patch("main.db_manager")
@@ -71,15 +72,32 @@ def test_main_no_new_articles(mock_modules):
 
 def test_main_no_rss_urls_env(mocker):
     """RSS_URLS環境変数が設定されていない場合のテスト"""
-    # 環境変数をクリア
-    mocker.patch.dict(os.environ, clear=True)
+    # RSS_URLSのみ未設定の状態を模倣
+    mocker.patch.dict(os.environ, {"RSS_URLS": ""})
 
     # 他のモジュールが呼ばれないようにモック化
+    # configure_geminiが成功するよう、gemini_processorもモック化しておく
+    mock_gemini = mocker.patch("main.gemini_processor")
     mock_db = mocker.patch("main.db_manager")
     mock_rss = mocker.patch("main.rss_fetcher")
 
     main()
 
-    # DB初期化は呼ばれるが、記事取得は呼ばれない
+    # gemini設定は試みられる
+    mock_gemini.configure_gemini.assert_called_once()
+    # DB初期化は呼ばれるが、RSS_URLSがないため記事取得は呼ばれずに終了する
     mock_db.init_db.assert_called_once()
     mock_rss.fetch_new_articles.assert_not_called()
+
+def test_main_gemini_config_failure(mocker):
+    """GeminiのAPIキー設定に失敗した場合のテスト"""
+    mock_gemini = mocker.patch("main.gemini_processor")
+    mock_db = mocker.patch("main.db_manager")
+
+    # configure_geminiがValueErrorを発生させるように設定
+    mock_gemini.configure_gemini.side_effect = ValueError("Test Error")
+
+    main()
+
+    # 設定に失敗したので、後続の処理(DB初期化など)は呼ばれない
+    mock_db.init_db.assert_not_called()
