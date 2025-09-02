@@ -71,7 +71,7 @@ def summarize_article(article_content: str) -> str:
     if not article_content:
         return ""
 
-    prompt = f"以下の文章を日本語3文で簡潔に要約してください。\n\n---\n{article_content}\n---"
+    prompt = f"以下の文章を、300書記素（約150文字）程度で、日本語3文で簡潔に要約してください。\n\n---\n{article_content}\n---"
 
     try:
         response = client.models.generate_content(

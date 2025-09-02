@@ -4,9 +4,23 @@ import db_manager
 import rss_fetcher
 import gemini_processor
 import bluesky_poster
+import grapheme
 
 # 要約する記事の最大数
 MAX_SUMMARIES = 3
+
+def truncate_graphemes(text: str, length: int, placeholder: str = "...") -> str:
+    """Truncates a string to a maximum number of graphemes."""
+    if grapheme.length(text) <= length:
+        return text
+
+    placeholder_len = grapheme.length(placeholder)
+    keep_len = length - placeholder_len
+    if keep_len < 0:
+        keep_len = 0
+
+    graphemes = list(grapheme.graphemes(text))
+    return "".join(graphemes[:keep_len]) + placeholder
 
 def main():
     """メインの処理フロー"""
@@ -49,16 +63,16 @@ def main():
         print("記事のランク付けに失敗しました。")
         return
 
-    # 5. Blueskyへの投稿準備（親投稿）
+    # 5. Blueskyへの投稿準備
     post_texts = []
+
+    # 親投稿のテキストを生成
     parent_post_text = "【最新記事の自動キュレーション】\n\nAIが選んだ注目記事リストはこちらです。\n"
     for i, article in enumerate(ranked_articles):
         parent_post_text += f"\n{i+1}. {article['title']}\n{article['link']}"
 
-    # Blueskyの文字数制限を考慮（単純なチェック）
-    if len(parent_post_text) > 300:
-        parent_post_text = parent_post_text[:290] + "... (文字数制限のため省略)"
-
+    # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
+    parent_post_text = truncate_graphemes(parent_post_text, 300)
     post_texts.append(parent_post_text)
 
     # 6. 上位記事の要約とリプライ準備
@@ -69,8 +83,8 @@ def main():
         summary = gemini_processor.summarize_article(article['summary'])
         if summary:
             reply_text = f"【要約】{article['title']}\n\n{summary}\n\n記事URL:\n{article['link']}"
-            if len(reply_text) > 300:
-                 reply_text = reply_text[:290] + "... (文字数制限のため省略)"
+            # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
+            reply_text = truncate_graphemes(reply_text, 300)
             post_texts.append(reply_text)
 
     # 7. Blueskyへのスレッド投稿
