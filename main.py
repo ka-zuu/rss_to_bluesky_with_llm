@@ -7,7 +7,7 @@ import bluesky_poster
 import grapheme
 
 # 要約する記事の最大数
-MAX_SUMMARIES = 3
+MAX_SUMMARIES = 5
 
 def truncate_graphemes(text: str, length: int, placeholder: str = "...") -> str:
     """Truncates a string to a maximum number of graphemes."""
@@ -66,9 +66,12 @@ def main():
     # 5. Blueskyへの投稿準備
     post_texts = []
 
+    # 上位5件の記事に絞り込む
+    top_articles = ranked_articles[:5]
+
     # 親投稿のテキストを生成
     parent_post_text_parts = []
-    for i, article in enumerate(ranked_articles):
+    for i, article in enumerate(top_articles):
         parent_post_text_parts.append(f"{i+1}. {article['title']}")
     parent_post_text = "\n".join(parent_post_text_parts)
 
@@ -78,7 +81,7 @@ def main():
 
     # 6. 上位記事の要約とリプライ準備
     print("上位記事の要約を生成中...")
-    articles_to_summarize = ranked_articles[:MAX_SUMMARIES]
+    articles_to_summarize = top_articles # 親投稿と同じ記事リストを使用
 
     for article in articles_to_summarize:
         summary = gemini_processor.summarize_article(article['content'])
