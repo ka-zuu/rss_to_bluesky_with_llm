@@ -1,8 +1,17 @@
+import os
+from dotenv import load_dotenv
 from google import genai
 from typing import List, Dict
-import os
 
-# APIクライアントをモジュールレベルで初期化
+# .envファイルから環境変数を読み込む
+load_dotenv()
+
+# APIキーの存在チェック
+if not os.getenv("GEMINI_API_KEY"):
+    raise ValueError("GEMINI_API_KEYが設定されていません。.envファイルを確認してください。")
+
+# クライアントをモジュールレベルで初期化
+# APIキーは環境変数 `GEMINI_API_KEY` から自動的に読み込まれる
 client = genai.Client()
 
 def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -19,13 +28,13 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash", 
+            model="gemini-1.5-flash",
             contents=prompt
         )
         ranked_text = response.text
     except Exception as e:
         print(f"Gemini APIでエラーが発生しました: {e}")
-        return [] # エラー時は空のリストを返す
+        return []  # エラー時は空のリストを返す
 
     # AIの出力（テキスト）を解析して、順序付けられた記事リストを再構築
     ranked_articles = []
@@ -56,6 +65,7 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
     return ranked_articles
 
+
 def summarize_article(article_content: str) -> str:
     """Gemini APIを使用して記事を3文で要約する"""
     if not article_content:
@@ -65,7 +75,7 @@ def summarize_article(article_content: str) -> str:
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-1.5-flash",
             contents=prompt
         )
         return response.text.strip()
