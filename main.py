@@ -67,9 +67,10 @@ def main():
     post_texts = []
 
     # 親投稿のテキストを生成
-    parent_post_text = "【最新記事の自動キュレーション】\n\nAIが選んだ注目記事リストはこちらです。\n"
+    parent_post_text_parts = []
     for i, article in enumerate(ranked_articles):
-        parent_post_text += f"\n{i+1}. {article['title']}\n{article['link']}"
+        parent_post_text_parts.append(f"{i+1}. {article['title']}")
+    parent_post_text = "\n".join(parent_post_text_parts)
 
     # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
     parent_post_text = truncate_graphemes(parent_post_text, 300)
