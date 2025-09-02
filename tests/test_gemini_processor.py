@@ -1,4 +1,4 @@
-import unittest
+import pytest
 from unittest.mock import patch, MagicMock
 import os
 
@@ -9,18 +9,19 @@ if "GEMINI_API_KEY" not in os.environ:
 
 from gemini_processor import rank_articles, summarize_article
 
-class TestGeminiProcessor(unittest.TestCase):
+@pytest.fixture
+def articles():
+    """テスト用の記事リストを提供するフィクスチャ"""
+    return [
+        {'title': '記事1', 'link': 'http://example.com/1'},
+        {'title': '記事2', 'link': 'http://example.com/2'},
+        {'title': '記事3', 'link': 'http://example.com/3'},
+    ]
 
-    def setUp(self):
-        """テストケースごとに実行される設定"""
-        self.articles = [
-            {'title': '記事1', 'link': 'http://example.com/1'},
-            {'title': '記事2', 'link': 'http://example.com/2'},
-            {'title': '記事3', 'link': 'http://example.com/3'},
-        ]
+class TestGeminiProcessor:
 
     @patch('gemini_processor.client.models.generate_content')
-    def test_rank_articles_success(self, mock_generate_content):
+    def test_rank_articles_success(self, mock_generate_content, articles):
         """rank_articlesが成功する場合のテスト"""
         # モックの設定
         mock_response = MagicMock()
@@ -36,34 +37,34 @@ http://example.com/2
         mock_generate_content.return_value = mock_response
 
         # テスト対象の関数を実行
-        ranked = rank_articles(self.articles)
+        ranked = rank_articles(articles)
 
         # 結果の検証
-        self.assertEqual(len(ranked), 3)
-        self.assertEqual(ranked[0]['link'], 'http://example.com/3')
-        self.assertEqual(ranked[1]['link'], 'http://example.com/1')
-        self.assertEqual(ranked[2]['link'], 'http://example.com/2')
+        assert len(ranked) == 3
+        assert ranked[0]['link'] == 'http://example.com/3'
+        assert ranked[1]['link'] == 'http://example.com/1'
+        assert ranked[2]['link'] == 'http://example.com/2'
         mock_generate_content.assert_called_once()
 
     @patch('gemini_processor.client.models.generate_content')
-    def test_rank_articles_api_error(self, mock_generate_content):
+    def test_rank_articles_api_error(self, mock_generate_content, articles):
         """rank_articlesでAPIエラーが発生する場合のテスト"""
         # モックの設定
         mock_generate_content.side_effect = Exception("API Error")
 
         # テスト対象の関数を実行
-        ranked = rank_articles(self.articles)
+        ranked = rank_articles(articles)
 
         # 結果の検証
-        self.assertEqual(ranked, [])
+        assert ranked == []
 
     def test_rank_articles_empty_list(self):
         """rank_articlesに空のリストを渡す場合のテスト"""
         ranked = rank_articles([])
-        self.assertEqual(ranked, [])
+        assert ranked == []
 
     @patch('gemini_processor.client.models.generate_content')
-    def test_rank_articles_parsing_failure(self, mock_generate_content):
+    def test_rank_articles_parsing_failure(self, mock_generate_content, articles):
         """rank_articlesでAIの応答の解析に失敗する場合のテスト"""
         # モックの設定
         mock_response = MagicMock()
@@ -71,10 +72,10 @@ http://example.com/2
         mock_generate_content.return_value = mock_response
 
         # テスト対象の関数を実行
-        ranked = rank_articles(self.articles)
+        ranked = rank_articles(articles)
 
         # 解析失敗時は元の順序で返されることを確認
-        self.assertEqual(ranked, self.articles)
+        assert ranked == articles
 
     @patch('gemini_processor.client.models.generate_content')
     def test_summarize_article_success(self, mock_generate_content):
@@ -90,7 +91,7 @@ http://example.com/2
         summary = summarize_article(content)
 
         # 結果の検証
-        self.assertEqual(summary, summary_text)
+        assert summary == summary_text
         mock_generate_content.assert_called_once()
 
     @patch('gemini_processor.client.models.generate_content')
@@ -104,12 +105,9 @@ http://example.com/2
         summary = summarize_article(content)
 
         # 結果の検証
-        self.assertEqual(summary, "要約の生成中にエラーが発生しました。")
+        assert summary == "要約の生成中にエラーが発生しました。"
 
     def test_summarize_article_empty_content(self):
         """summarize_articleに空のコンテンツを渡す場合のテスト"""
         summary = summarize_article("")
-        self.assertEqual(summary, "")
-
-if __name__ == '__main__':
-    unittest.main()
+        assert summary == ""
