@@ -13,12 +13,7 @@ def main():
     # 環境変数を読み込む
     load_dotenv()
 
-    # Gemini APIキーを設定
-    try:
-        gemini_processor.configure_gemini()
-    except ValueError as e:
-        print(f"エラー: {e}")
-        return # キーがない場合は処理を中断
+    
 
     print("処理を開始します...")
 

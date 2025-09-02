@@ -1,99 +1,115 @@
-import pytest
+import unittest
+from unittest.mock import patch, MagicMock
 import os
-from gemini_processor import configure_gemini, rank_articles, summarize_article
 
-@pytest.fixture
-def mock_gemini(mocker):
-    """google.generativeaiモジュールをモック化するフィクスチャ"""
-    mock_genai = mocker.patch("gemini_processor.genai")
+# `gemini_processor` をインポートする前に、APIキーの存在チェックを無効化
+# テストではAPIをモックするため、実際のキーは不要
+if "GEMINI_API_KEY" not in os.environ:
+    os.environ["GEMINI_API_KEY"] = "dummy_key_for_testing"
 
-    # model.generate_content().text のチェーンをモック化
-    mock_response = mocker.MagicMock()
-    mock_model = mocker.MagicMock()
-    mock_model.generate_content.return_value = mock_response
-    mock_genai.GenerativeModel.return_value = mock_model
+from gemini_processor import rank_articles, summarize_article
 
-    # configure_gemini内のgenai.configureもモック化
-    mock_genai.configure = mocker.MagicMock()
+class TestGeminiProcessor(unittest.TestCase):
 
-    return mock_genai, mock_model, mock_response
+    def setUp(self):
+        """テストケースごとに実行される設定"""
+        self.articles = [
+            {'title': '記事1', 'link': 'http://example.com/1'},
+            {'title': '記事2', 'link': 'http://example.com/2'},
+            {'title': '記事3', 'link': 'http://example.com/3'},
+        ]
 
-def test_configure_gemini_success(mocker, mock_gemini):
-    """GEMINI_API_KEYが設定されている場合のテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    mock_genai, _, _ = mock_gemini
+    @patch('gemini_processor.client.models.generate_content')
+    def test_rank_articles_success(self, mock_generate_content):
+        """rank_articlesが成功する場合のテスト"""
+        # モックの設定
+        mock_response = MagicMock()
+        # AIの応答をシミュレート
+        mock_response.text = """
+1. 記事3
+http://example.com/3
+2. 記事1
+http://example.com/1
+3. 記事2
+http://example.com/2
+"""
+        mock_generate_content.return_value = mock_response
 
-    configure_gemini()
+        # テスト対象の関数を実行
+        ranked = rank_articles(self.articles)
 
-    mock_genai.configure.assert_called_once_with(api_key="test_key")
+        # 結果の検証
+        self.assertEqual(len(ranked), 3)
+        self.assertEqual(ranked[0]['link'], 'http://example.com/3')
+        self.assertEqual(ranked[1]['link'], 'http://example.com/1')
+        self.assertEqual(ranked[2]['link'], 'http://example.com/2')
+        mock_generate_content.assert_called_once()
 
-def test_configure_gemini_failure(mocker):
-    """GEMINI_API_KEYが設定されていない場合にValueErrorを送出するかのテスト"""
-    mocker.patch.dict(os.environ, clear=True)
-    with pytest.raises(ValueError, match="環境変数 GEMINI_API_KEY が設定されていません。"):
-        configure_gemini()
+    @patch('gemini_processor.client.models.generate_content')
+    def test_rank_articles_api_error(self, mock_generate_content):
+        """rank_articlesでAPIエラーが発生する場合のテスト"""
+        # モックの設定
+        mock_generate_content.side_effect = Exception("API Error")
 
-def test_rank_articles_success(mocker, mock_gemini):
-    """記事のランク付けが成功するかのテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, mock_response = mock_gemini
+        # テスト対象の関数を実行
+        ranked = rank_articles(self.articles)
 
-    articles = [
-        {"title": "Article A", "link": "http://a.com", "summary": "Sum A"},
-        {"title": "Article B", "link": "http://b.com", "summary": "Sum B"},
-    ]
+        # 結果の検証
+        self.assertEqual(ranked, [])
 
-    # Geminiからのレスポンスを模倣
-    mock_response.text = "1. Article B\nhttp://b.com\n2. Article A\nhttp://a.com"
+    def test_rank_articles_empty_list(self):
+        """rank_articlesに空のリストを渡す場合のテスト"""
+        ranked = rank_articles([])
+        self.assertEqual(ranked, [])
 
-    ranked = rank_articles(articles)
+    @patch('gemini_processor.client.models.generate_content')
+    def test_rank_articles_parsing_failure(self, mock_generate_content):
+        """rank_articlesでAIの応答の解析に失敗する場合のテスト"""
+        # モックの設定
+        mock_response = MagicMock()
+        mock_response.text = "予期しない形式のテキスト"
+        mock_generate_content.return_value = mock_response
 
-    mock_model.generate_content.assert_called_once()
-    assert len(ranked) == 2
-    assert ranked[0]["title"] == "Article B"
-    assert ranked[1]["title"] == "Article A"
+        # テスト対象の関数を実行
+        ranked = rank_articles(self.articles)
 
-def test_rank_articles_api_error(mocker, mock_gemini):
-    """ランク付け時にAPIエラーが発生した場合のテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, _ = mock_gemini
-    mock_model.generate_content.side_effect = Exception("API Error")
+        # 解析失敗時は元の順序で返されることを確認
+        self.assertEqual(ranked, self.articles)
 
-    articles = [{"title": "Article A", "link": "http://a.com", "summary": "Sum A"}]
-    ranked = rank_articles(articles)
+    @patch('gemini_processor.client.models.generate_content')
+    def test_summarize_article_success(self, mock_generate_content):
+        """summarize_articleが成功する場合のテスト"""
+        # モックの設定
+        mock_response = MagicMock()
+        summary_text = "これは要約です。3文で構成されています。最後の文です。"
+        mock_response.text = summary_text
+        mock_generate_content.return_value = mock_response
 
-    assert ranked == []
+        # テスト対象の関数を実行
+        content = "これはテスト用の記事内容です。"
+        summary = summarize_article(content)
 
-def test_rank_articles_empty_input():
-    """入力記事リストが空の場合のテスト"""
-    assert rank_articles([]) == []
+        # 結果の検証
+        self.assertEqual(summary, summary_text)
+        mock_generate_content.assert_called_once()
 
-def test_summarize_article_success(mocker, mock_gemini):
-    """記事の要約が成功するかのテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, mock_response = mock_gemini
+    @patch('gemini_processor.client.models.generate_content')
+    def test_summarize_article_api_error(self, mock_generate_content):
+        """summarize_articleでAPIエラーが発生する場合のテスト"""
+        # モックの設定
+        mock_generate_content.side_effect = Exception("API Error")
 
-    mock_response.text = "これは要約です。"
+        # テスト対象の関数を実行
+        content = "これはテスト用の記事内容です。"
+        summary = summarize_article(content)
 
-    summary = summarize_article("これは長い記事の本文です。")
+        # 結果の検証
+        self.assertEqual(summary, "要約の生成中にエラーが発生しました。")
 
-    mock_model.generate_content.assert_called_once()
-    assert summary == "これは要約です。"
-    # プロンプトの内容を検証
-    prompt = mock_model.generate_content.call_args[0][0]
-    assert "日本語3文で簡潔に要約してください" in prompt
-    assert "これは長い記事の本文です" in prompt
+    def test_summarize_article_empty_content(self):
+        """summarize_articleに空のコンテンツを渡す場合のテスト"""
+        summary = summarize_article("")
+        self.assertEqual(summary, "")
 
-def test_summarize_article_api_error(mocker, mock_gemini):
-    """要約時にAPIエラーが発生した場合のテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, _ = mock_gemini
-    mock_model.generate_content.side_effect = Exception("API Error")
-
-    summary = summarize_article("記事本文")
-
-    assert "要約の生成中にエラーが発生しました" in summary
-
-def test_summarize_article_empty_input():
-    """入力記事本文が空の場合のテスト"""
-    assert summarize_article("") == ""
+if __name__ == '__main__':
+    unittest.main()

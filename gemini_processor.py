@@ -1,19 +1,23 @@
-import google.generativeai as genai
-from typing import List, Dict
 import os
+from dotenv import load_dotenv
+from google import genai
+from typing import List, Dict
 
-def configure_gemini():
-    """Gemini APIキーを設定する。環境変数から読み込む。"""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("環境変数 GEMINI_API_KEY が設定されていません。")
-    genai.configure(api_key=api_key)
+# .envファイルから環境変数を読み込む
+load_dotenv()
+
+# APIキーの存在チェック
+if not os.getenv("GEMINI_API_KEY"):
+    raise ValueError("GEMINI_API_KEYが設定されていません。.envファイルを確認してください。")
+
+# クライアントをモジュールレベルで初期化
+# APIキーは環境変数 `GEMINI_API_KEY` から自動的に読み込まれる
+client = genai.Client()
 
 def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """Gemini APIを使用して記事を重要度順にランク付けする"""
     if not articles:
         return []
-    model = genai.GenerativeModel('gemini-pro')
 
     # プロンプトの作成
     prompt_parts = ["以下の記事を重要度が高い順に、番号を付けてリスト化してください。タイトルとURLのみを出力してください。\n"]
@@ -23,11 +27,14 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
     prompt = "".join(prompt_parts)
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
         ranked_text = response.text
     except Exception as e:
         print(f"Gemini APIでエラーが発生しました: {e}")
-        return [] # エラー時は空のリストを返す
+        return []  # エラー時は空のリストを返す
 
     # AIの出力（テキスト）を解析して、順序付けられた記事リストを再構築
     ranked_articles = []
@@ -58,17 +65,19 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
     return ranked_articles
 
+
 def summarize_article(article_content: str) -> str:
     """Gemini APIを使用して記事を3文で要約する"""
     if not article_content:
         return ""
 
-    model = genai.GenerativeModel('gemini-pro')
-
     prompt = f"以下の文章を日本語3文で簡潔に要約してください。\n\n---\n{article_content}\n---"
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
         return response.text.strip()
     except Exception as e:
         print(f"Gemini APIでの要約中にエラーが発生しました: {e}")
