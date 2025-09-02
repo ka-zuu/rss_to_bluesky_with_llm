@@ -15,12 +15,12 @@ def mock_modules(mocker):
 
     # モックの戻り値を設定
     mock_rss.fetch_new_articles.return_value = [
-        {"title": "Article 1", "link": "http://a1.com", "summary": "Summary 1"},
-        {"title": "Article 2", "link": "http://a2.com", "summary": "Summary 2"},
+        {"title": "Article 1", "link": "http://a1.com", "summary": "Summary 1", "content": "Content 1"},
+        {"title": "Article 2", "link": "http://a2.com", "summary": "Summary 2", "content": "Content 2"},
     ]
     mock_gemini.rank_articles.return_value = [
-        {"title": "Article 2", "link": "http://a2.com", "summary": "Summary 2"},
-        {"title": "Article 1", "link": "http://a1.com", "summary": "Summary 1"},
+        {"title": "Article 2", "link": "http://a2.com", "summary": "Summary 2", "content": "Content 2"},
+        {"title": "Article 1", "link": "http://a1.com", "summary": "Summary 1", "content": "Content 1"},
     ]
     mock_gemini.summarize_article.return_value = "This is a summary."
     mock_bsky.post_thread.return_value = True
