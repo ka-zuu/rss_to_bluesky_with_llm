@@ -3,27 +3,23 @@ from dotenv import load_dotenv
 import db_manager
 import rss_fetcher
 import gemini_processor
-import google.generativeai as genai
 import bluesky_poster
-
-# 環境変数を読み込む
-load_dotenv()
-
-# Gemini APIキーを設定
-try:
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("環境変数 GEMINI_API_KEY が設定されていません。")
-    genai.configure(api_key=api_key)
-except ValueError as e:
-    print(f"エラー: {e}")
-    exit() # キーがない場合は処理を中断
 
 # 要約する記事の最大数
 MAX_SUMMARIES = 3
 
 def main():
     """メインの処理フロー"""
+    # 環境変数を読み込む
+    load_dotenv()
+
+    # Gemini APIキーを設定
+    try:
+        gemini_processor.configure_gemini()
+    except ValueError as e:
+        print(f"エラー: {e}")
+        return # キーがない場合は処理を中断
+
     print("処理を開始します...")
 
     # 1. データベースの初期化
