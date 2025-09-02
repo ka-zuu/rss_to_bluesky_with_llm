@@ -5,3 +5,5 @@ grapheme
 python-dotenv
 pytest
 pytest-mock
+requests
+beautifulsoup4

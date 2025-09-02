@@ -81,7 +81,7 @@ def main():
     articles_to_summarize = ranked_articles[:MAX_SUMMARIES]
 
     for article in articles_to_summarize:
-        summary = gemini_processor.summarize_article(article['summary'])
+        summary = gemini_processor.summarize_article(article['content'])
         if summary:
             reply_text = f"【要約】{article['title']}\n\n{summary}\n\n記事URL:\n{article['link']}"
             # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
