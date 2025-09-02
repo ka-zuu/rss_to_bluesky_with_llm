@@ -18,7 +18,7 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
     try:
         response = client.models.generate_content(
-            model="gemini-pro", 
+            model="gemini-2.5-flash", 
             contents=prompt
         )
         ranked_text = response.text
