@@ -35,7 +35,12 @@ def main():
         print("新しい記事はありませんでした。")
         return
 
-    print(f"{len(new_articles)}件の新しい記事が見つかりました。")
+    # 新しい記事が10件を超える場合は、古いもの10件に絞る
+    if len(new_articles) > 10:
+        print(f"新着記事が{len(new_articles)}件見つかりました。古い10件に絞り込みます。")
+        new_articles = new_articles[:10]
+
+    print(f"{len(new_articles)}件の新しい記事を処理します。")
 
     # 4. 記事の重要度評価
     print("記事をランク付け中...")
