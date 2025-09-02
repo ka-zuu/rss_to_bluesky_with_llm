@@ -34,7 +34,7 @@ def test_rank_articles_success(mocker, mock_gemini_client):
     # `generate_content`が正しい引数で呼び出されたか検証
     mock_client.models.generate_content.assert_called_once()
     call_args, call_kwargs = mock_client.models.generate_content.call_args
-    assert call_kwargs['model'] == 'gemini-pro'
+    assert call_kwargs['model'] == 'gemini-2.5-flash'
     assert "Article A" in call_kwargs['contents']
     assert "Article B" in call_kwargs['contents']
 
