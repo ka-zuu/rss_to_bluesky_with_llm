@@ -1,42 +1,25 @@
 import pytest
-import os
-from gemini_processor import configure_gemini, rank_articles, summarize_article
+from gemini_processor import rank_articles, summarize_article
 
 @pytest.fixture
-def mock_gemini(mocker):
-    """google.generativeaiモジュールをモック化するフィクスチャ"""
+def mock_gemini_client(mocker):
+    """google.genai.Clientをモック化するフィクスチャ"""
+    # `google.genai`をモック化
     mock_genai = mocker.patch("gemini_processor.genai")
-
-    # model.generate_content().text のチェーンをモック化
+    
+    # Clientインスタンスと、その中の`models.generate_content`メソッドをモック化
+    mock_client_instance = mocker.MagicMock()
     mock_response = mocker.MagicMock()
-    mock_model = mocker.MagicMock()
-    mock_model.generate_content.return_value = mock_response
-    mock_genai.GenerativeModel.return_value = mock_model
+    mock_client_instance.models.generate_content.return_value = mock_response
+    
+    # `genai.Client()`が呼び出されたら、モックインスタンスを返すように設定
+    mock_genai.Client.return_value = mock_client_instance
+    
+    return mock_client_instance, mock_response
 
-    # configure_gemini内のgenai.configureもモック化
-    mock_genai.configure = mocker.MagicMock()
-
-    return mock_genai, mock_model, mock_response
-
-def test_configure_gemini_success(mocker, mock_gemini):
-    """GEMINI_API_KEYが設定されている場合のテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    mock_genai, _, _ = mock_gemini
-
-    configure_gemini()
-
-    mock_genai.configure.assert_called_once_with(api_key="test_key")
-
-def test_configure_gemini_failure(mocker):
-    """GEMINI_API_KEYが設定されていない場合にValueErrorを送出するかのテスト"""
-    mocker.patch.dict(os.environ, clear=True)
-    with pytest.raises(ValueError, match="環境変数 GEMINI_API_KEY が設定されていません。"):
-        configure_gemini()
-
-def test_rank_articles_success(mocker, mock_gemini):
+def test_rank_articles_success(mocker, mock_gemini_client):
     """記事のランク付けが成功するかのテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, mock_response = mock_gemini
+    mock_client, mock_response = mock_gemini_client
 
     articles = [
         {"title": "Article A", "link": "http://a.com", "summary": "Sum A"},
@@ -48,16 +31,21 @@ def test_rank_articles_success(mocker, mock_gemini):
 
     ranked = rank_articles(articles)
 
-    mock_model.generate_content.assert_called_once()
+    # `generate_content`が正しい引数で呼び出されたか検証
+    mock_client.models.generate_content.assert_called_once()
+    call_args, call_kwargs = mock_client.models.generate_content.call_args
+    assert call_kwargs['model'] == 'gemini-pro'
+    assert "Article A" in call_kwargs['contents']
+    assert "Article B" in call_kwargs['contents']
+
     assert len(ranked) == 2
     assert ranked[0]["title"] == "Article B"
     assert ranked[1]["title"] == "Article A"
 
-def test_rank_articles_api_error(mocker, mock_gemini):
+def test_rank_articles_api_error(mocker, mock_gemini_client):
     """ランク付け時にAPIエラーが発生した場合のテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, _ = mock_gemini
-    mock_model.generate_content.side_effect = Exception("API Error")
+    mock_client, _ = mock_gemini_client
+    mock_client.models.generate_content.side_effect = Exception("API Error")
 
     articles = [{"title": "Article A", "link": "http://a.com", "summary": "Sum A"}]
     ranked = rank_articles(articles)
@@ -68,27 +56,27 @@ def test_rank_articles_empty_input():
     """入力記事リストが空の場合のテスト"""
     assert rank_articles([]) == []
 
-def test_summarize_article_success(mocker, mock_gemini):
+def test_summarize_article_success(mocker, mock_gemini_client):
     """記事の要約が成功するかのテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, mock_response = mock_gemini
+    mock_client, mock_response = mock_gemini_client
 
     mock_response.text = "これは要約です。"
 
     summary = summarize_article("これは長い記事の本文です。")
 
-    mock_model.generate_content.assert_called_once()
+    # `generate_content`が正しい引数で呼び出されたか検証
+    mock_client.models.generate_content.assert_called_once()
+    call_args, call_kwargs = mock_client.models.generate_content.call_args
+    assert call_kwargs['model'] == 'gemini-pro'
+    assert "日本語3文で簡潔に要約してください" in call_kwargs['contents']
+    assert "これは長い記事の本文です" in call_kwargs['contents']
+    
     assert summary == "これは要約です。"
-    # プロンプトの内容を検証
-    prompt = mock_model.generate_content.call_args[0][0]
-    assert "日本語3文で簡潔に要約してください" in prompt
-    assert "これは長い記事の本文です" in prompt
 
-def test_summarize_article_api_error(mocker, mock_gemini):
+def test_summarize_article_api_error(mocker, mock_gemini_client):
     """要約時にAPIエラーが発生した場合のテスト"""
-    mocker.patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"})
-    _, mock_model, _ = mock_gemini
-    mock_model.generate_content.side_effect = Exception("API Error")
+    mock_client, _ = mock_gemini_client
+    mock_client.models.generate_content.side_effect = Exception("API Error")
 
     summary = summarize_article("記事本文")
 
