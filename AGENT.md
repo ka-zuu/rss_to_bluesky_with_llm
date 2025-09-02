@@ -5,3 +5,4 @@ Gemini APIを使用する際は、`doc/gemini_api.md`のサンプルコードを
 
 プルリクエストメッセージは日本語で作成してください。
 
+unittestは使わず、pytestを使ってください
