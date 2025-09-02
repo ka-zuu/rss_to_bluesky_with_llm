@@ -2,12 +2,13 @@ from google import genai
 from typing import List, Dict
 import os
 
+# APIクライアントをモジュールレベルで初期化
+client = genai.Client()
+
 def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """Gemini APIを使用して記事を重要度順にランク付けする"""
     if not articles:
         return []
-    
-    client = genai.Client()
 
     # プロンプトの作成
     prompt_parts = ["以下の記事を重要度が高い順に、番号を付けてリスト化してください。タイトルとURLのみを出力してください。\n"]
@@ -59,8 +60,6 @@ def summarize_article(article_content: str) -> str:
     """Gemini APIを使用して記事を3文で要約する"""
     if not article_content:
         return ""
-
-    client = genai.Client()
 
     prompt = f"以下の文章を日本語3文で簡潔に要約してください。\n\n---\n{article_content}\n---"
 
