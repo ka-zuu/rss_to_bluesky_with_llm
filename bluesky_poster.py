@@ -24,10 +24,9 @@ def post_thread(post_texts: List[str]) -> bool:
         # ここでは単純な例として分割は実装せず、呼び出し元で調整する前提
         post_ref = client.send_post(text=parent_post_text)
 
-        parent_ref = models.ComAtprotoRepoStrongRef.Main(
-            uri=post_ref.uri,
-            cid=post_ref.cid
-        )
+        # 親投稿の参照を保存
+        parent_ref = models.ComAtprotoRepoStrongRef.Main(uri=post_ref.uri, cid=post_ref.cid)
+        root_ref = parent_ref # スレッドのルートは常に最初の投稿
 
         # リプライ投稿
         for i in range(1, len(post_texts)):
@@ -36,7 +35,7 @@ def post_thread(post_texts: List[str]) -> bool:
                 text=reply_text,
                 reply_to=models.AppBskyFeedPost.ReplyRef(
                     parent=parent_ref,
-                    root=parent_ref
+                    root=root_ref # rootは常に最初の投稿を指す
                 )
             )
             # 次のリプライのために、今投稿したものを親とする
