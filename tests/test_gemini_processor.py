@@ -67,7 +67,7 @@ def test_summarize_article_success(mocker, mock_gemini_client):
     # `generate_content`が正しい引数で呼び出されたか検証
     mock_client.models.generate_content.assert_called_once()
     call_args, call_kwargs = mock_client.models.generate_content.call_args
-    assert call_kwargs['model'] == 'gemini-pro'
+    assert call_kwargs['model'] == 'gemini-2.5-flash'
     assert "日本語3文で簡潔に要約してください" in call_kwargs['contents']
     assert "これは長い記事の本文です" in call_kwargs['contents']
     
