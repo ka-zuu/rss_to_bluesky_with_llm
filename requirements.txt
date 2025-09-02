@@ -1,6 +1,7 @@
 feedparser
 google-genai
 atproto
+grapheme
 python-dotenv
 pytest
 pytest-mock
