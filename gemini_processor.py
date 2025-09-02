@@ -28,7 +28,7 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.5-flash",
             contents=prompt
         )
         ranked_text = response.text
@@ -75,7 +75,7 @@ def summarize_article(article_content: str) -> str:
 
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.5-flash",
             contents=prompt
         )
         return response.text.strip()
