@@ -50,11 +50,11 @@ def main():
         print("新しい記事はありませんでした。")
         return
 
-    # 処理対象の記事を決定（10件に絞り込む）
+    # 処理対象の記事を決定（最新20件に絞り込む）
     articles_to_process = all_new_articles
-    if len(all_new_articles) > 10:
-        print(f"新着記事が{len(all_new_articles)}件見つかりました。古い10件に絞り込みます。")
-        articles_to_process = all_new_articles[:10]
+    if len(all_new_articles) > 20:
+        print(f"新着記事が{len(all_new_articles)}件見つかりました。最新20件に絞り込みます。")
+        articles_to_process = all_new_articles[-20:]
 
     print(f"{len(articles_to_process)}件の新しい記事を処理します。")
 
