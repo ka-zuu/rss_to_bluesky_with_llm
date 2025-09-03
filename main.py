@@ -44,22 +44,23 @@ def main():
 
     # 3. 新しい記事の取得
     print("新しい記事を取得中...")
-    new_articles = rss_fetcher.fetch_new_articles(rss_urls)
+    all_new_articles = rss_fetcher.fetch_new_articles(rss_urls)
 
-    if not new_articles:
+    if not all_new_articles:
         print("新しい記事はありませんでした。")
         return
 
-    # 新しい記事が10件を超える場合は、古いもの10件に絞る
-    if len(new_articles) > 10:
-        print(f"新着記事が{len(new_articles)}件見つかりました。古い10件に絞り込みます。")
-        new_articles = new_articles[:10]
+    # 処理対象の記事を決定（最新20件に絞り込む）
+    articles_to_process = all_new_articles
+    if len(all_new_articles) > 20:
+        print(f"新着記事が{len(all_new_articles)}件見つかりました。最新20件に絞り込みます。")
+        articles_to_process = all_new_articles[-20:]
 
-    print(f"{len(new_articles)}件の新しい記事を処理します。")
+    print(f"{len(articles_to_process)}件の新しい記事を処理します。")
 
     # 4. 記事の重要度評価
     print("記事をランク付け中...")
-    ranked_articles = gemini_processor.rank_articles(new_articles)
+    ranked_articles = gemini_processor.rank_articles(articles_to_process)
     if not ranked_articles:
         print("記事のランク付けに失敗しました。")
         return
@@ -111,7 +112,8 @@ def main():
     # 8. データベースの更新
     if success:
         print("データベースを更新中...")
-        for article in ranked_articles: # ランク付けされたすべての記事をDBに追加
+        # 投稿の成否に関わらず、取得したすべての記事をDBに追加する
+        for article in all_new_articles:
             db_manager.add_url(article['link'])
         print("データベースの更新が完了しました。")
     else:
