@@ -76,8 +76,21 @@ Linuxサーバーなどで定期的に実行したい場合は、cronジョブ�
 0 */3 * * * /path/to/your/script/venv/bin/python /path/to/your/script/main.py >> /path/to/your/script/cron.log 2>&1
 ```
 
+## テストの実行
+
+このプロジェクトには、各モジュールの動作を検証するための単体テストが含まれています。テストは`pytest`を使用して実行します。
+
+プロジェクトのルートディレクトリで以下のコマンドを実行してください。
+
+```bash
+pytest
+```
+
 ## プロジェクト構造
 
+- `.github/`: GitHub Actionsのワークフローなど、GitHub関連の設定ファイル。
+- `doc/`: プロジェクトの追加ドキュメント。
+- `tests/`: `pytest`を使用した単体テストコード。
 - `main.py`: 全体の処理フローを制御するメインスクリプト。
 - `rss_fetcher.py`: RSSフィードを取得し、新しい記事を抽出するモジュール。
 - `gemini_processor.py`: Gemini APIと連携し、記事のランク付けと要約を行うモジュール。
@@ -87,3 +100,7 @@ Linuxサーバーなどで定期的に実行したい場合は、cronジョブ�
 - `.env.example`: 環境変数の設定例ファイル。
 - `spec.md`: プロジェクトの仕様書。
 - `.gitignore`: Gitの追跡から除外するファイル（`.env`や`rss_cache.db`など）を指定。
+
+## ドキュメント
+
+追加のドキュメントは `doc/` ディレクトリにあります。例えば、APIの使用方法に関する詳細などが含まれます。
