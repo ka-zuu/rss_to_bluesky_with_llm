@@ -40,10 +40,9 @@ def test_main_success_flow(mock_modules):
     assert mock_gemini.summarize_article.call_count > 0
     mock_bsky.post_thread.assert_called_once()
 
-    # 投稿成功したのでDBにURLが追加されるはず
-    assert mock_db.add_url.call_count == 2
-    mock_db.add_url.assert_any_call("http://a2.com")
-    mock_db.add_url.assert_any_call("http://a1.com")
+    # DBにURLが追加されるのは投稿対象の1件のみ
+    mock_db.add_url.assert_called_once_with("http://a2.com")
+
 
 def test_main_post_failure(mock_modules):
     """Blueskyへの投稿が失敗した場合のテスト"""
@@ -54,8 +53,8 @@ def test_main_post_failure(mock_modules):
 
     main()
 
-    # 投稿に失敗したので、DBへの追加は行われない
-    mock_db.add_url.assert_not_called()
+    # 投稿に失敗しても、DBへの追加は行われる
+    mock_db.add_url.assert_called_once_with("http://a2.com")
 
 def test_main_no_new_articles(mock_modules):
     """新しい記事がない場合のテスト"""
