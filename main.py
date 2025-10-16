@@ -75,46 +75,43 @@ def main():
         print("投稿対象の記事がありません。")
         return
 
-    # 6. 上位記事の要約と投稿準備
+    # 6. 投稿対象の記事をDBに追加して、再投稿を防ぐ
+    print(f"投稿対象の記事をデータベースに登録します: {top_article['link']}")
+    db_manager.add_url(top_article['link'])
+
+    # 7. 上位記事の要約と投稿準備
     print("上位記事の要約を生成中...")
     summary = gemini_processor.summarize_article(top_article['content'])
-    if summary:
-        # 投稿テキストを作成
-        post_text = f"【要約】{top_article['title']}\n\n{summary}"
-        # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
-        post_text = truncate_graphemes(post_text, 300)
-
-        # 外部リンクの埋め込みを作成
-        embed_external = models.AppBskyEmbedExternal.Main(
-            external=models.AppBskyEmbedExternal.External(
-                uri=top_article['link'],
-                title=top_article['title'],
-                description=summary, # 要約をdescriptionとして使用
-            )
-        )
-        posts.append({'text': post_text, 'embed': embed_external})
-    else:
-        print("要約の生成に失敗しました。")
+    if not summary:
+        print("要約の生成に失敗しました。この記事の処理を中断します。")
         return
 
+    # 投稿テキストを作成
+    post_text = f"【要約】{top_article['title']}\n\n{summary}"
+    # Blueskyの文字数制限（300書記素）を超えないようにテキストを切り詰める
+    post_text = truncate_graphemes(post_text, 300)
 
-    # 7. Blueskyへの投稿
+    # 外部リンクの埋め込みを作成
+    embed_external = models.AppBskyEmbedExternal.Main(
+        external=models.AppBskyEmbedExternal.External(
+            uri=top_article['link'],
+            title=top_article['title'],
+            description=summary,  # 要約をdescriptionとして使用
+        )
+    )
+    posts.append({'text': post_text, 'embed': embed_external})
+
+    # 8. Blueskyへの投稿
     if posts:
         print("Blueskyへ投稿中...")
         success = bluesky_poster.post_thread(posts)
+        if success:
+            print("Blueskyへの投稿に成功しました。")
+        else:
+            print("Blueskyへの投稿に失敗しました。")
     else:
+        # このケースはロジック上発生し得ないが、念のため残す
         print("投稿するコンテンツがありません。")
-        success = False
-
-    # 8. データベースの更新
-    if success:
-        print("データベースを更新中...")
-        # 投稿の成否に関わらず、取得したすべての記事をDBに追加する
-        for article in all_new_articles:
-            db_manager.add_url(article['link'])
-        print("データベースの更新が完了しました。")
-    else:
-        print("Blueskyへの投稿に失敗したため、データベースは更新されませんでした。")
 
     print("処理が完了しました。")
 
