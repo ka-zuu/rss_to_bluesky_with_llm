@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 import db_manager
 import rss_fetcher
@@ -6,9 +7,13 @@ import gemini_processor
 import bluesky_poster
 import grapheme
 from atproto import models
+from logger_config import setup_logging
 
 # 要約する記事の最大数
 MAX_SUMMARIES = 1
+
+# ロガーの設定
+logger = logging.getLogger(__name__)
 
 def truncate_graphemes(text: str, length: int, placeholder: str = "...") -> str:
     """Truncates a string to a maximum number of graphemes."""
@@ -27,10 +32,10 @@ def main():
     """メインの処理フロー"""
     # 環境変数を読み込む
     load_dotenv()
+    # ロギングを設定
+    setup_logging()
 
-    
-
-    print("処理を開始します...")
+    logger.info("処理を開始します...")
 
     # 1. データベースの初期化
     db_manager.init_db()
@@ -38,31 +43,31 @@ def main():
     # 2. RSSフィードのURLを環境変数から取得
     rss_urls_str = os.getenv("RSS_URLS")
     if not rss_urls_str:
-        print("エラー: 環境変数 RSS_URLS が設定されていません。")
+        logger.error("環境変数 RSS_URLS が設定されていません。")
         return
     rss_urls = [url.strip() for url in rss_urls_str.split(',')]
 
     # 3. 新しい記事の取得
-    print("新しい記事を取得中...")
+    logger.info("新しい記事を取得中...")
     all_new_articles = rss_fetcher.fetch_new_articles(rss_urls)
 
     if not all_new_articles:
-        print("新しい記事はありませんでした。")
+        logger.info("新しい記事はありませんでした。")
         return
 
     # 処理対象の記事を決定（最新20件に絞り込む）
     articles_to_process = all_new_articles
     if len(all_new_articles) > 20:
-        print(f"新着記事が{len(all_new_articles)}件見つかりました。最新20件に絞り込みます。")
+        logger.info(f"新着記事が{len(all_new_articles)}件見つかりました。最新20件に絞り込みます。")
         articles_to_process = all_new_articles[-20:]
 
-    print(f"{len(articles_to_process)}件の新しい記事を処理します。")
+    logger.info(f"{len(articles_to_process)}件の新しい記事を処理します。")
 
     # 4. 記事の重要度評価
-    print("記事をランク付け中...")
+    logger.info("記事をランク付け中...")
     ranked_articles = gemini_processor.rank_articles(articles_to_process)
     if not ranked_articles:
-        print("記事のランク付けに失敗しました。")
+        logger.warning("記事のランク付けに失敗しました。")
         return
 
     # 5. Blueskyへの投稿準備
@@ -72,18 +77,18 @@ def main():
     top_article = ranked_articles[0] if ranked_articles else None
 
     if not top_article:
-        print("投稿対象の記事がありません。")
+        logger.info("投稿対象の記事がありません。")
         return
 
     # 6. 投稿対象の記事をDBに追加して、再投稿を防ぐ
-    print(f"投稿対象の記事をデータベースに登録します: {top_article['link']}")
+    logger.info(f"投稿対象の記事をデータベースに登録します: {top_article['link']}")
     db_manager.add_url(top_article['link'])
 
     # 7. 上位記事の要約と投稿準備
-    print("上位記事の要約を生成中...")
+    logger.info("上位記事の要約を生成中...")
     summary = gemini_processor.summarize_article(top_article['content'])
     if not summary:
-        print("要約の生成に失敗しました。この記事の処理を中断します。")
+        logger.warning("要約の生成に失敗しました。この記事の処理を中断します。")
         return
 
     # 投稿テキストを作成
@@ -103,17 +108,17 @@ def main():
 
     # 8. Blueskyへの投稿
     if posts:
-        print("Blueskyへ投稿中...")
+        logger.info("Blueskyへ投稿中...")
         success = bluesky_poster.post_thread(posts)
         if success:
-            print("Blueskyへの投稿に成功しました。")
+            logger.info("Blueskyへの投稿に成功しました。")
         else:
-            print("Blueskyへの投稿に失敗しました。")
+            logger.error("Blueskyへの投稿に失敗しました。")
     else:
         # このケースはロジック上発生し得ないが、念のため残す
-        print("投稿するコンテンツがありません。")
+        logger.warning("投稿するコンテンツがありません。")
 
-    print("処理が完了しました。")
+    logger.info("処理が完了しました。")
 
 
 if __name__ == "__main__":

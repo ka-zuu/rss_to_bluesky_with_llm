@@ -105,7 +105,7 @@ http://example.com/2
         summary = summarize_article(content)
 
         # 結果の検証
-        assert summary == "要約の生成中にエラーが発生しました。"
+        assert summary == ""
 
     def test_summarize_article_empty_content(self):
         """summarize_articleに空のコンテンツを渡す場合のテスト"""

@@ -1,6 +1,9 @@
 import os
+import logging
 from atproto import Client, models
 from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 def post_thread(posts: List[Dict[str, Any]]) -> bool:
     """
@@ -24,7 +27,7 @@ def post_thread(posts: List[Dict[str, Any]]) -> bool:
 
         # 親投稿が空の場合、最初の有効な投稿を親とする
         if not parent_post_text.strip():
-            print("親投稿のテキストが空です。投稿をスキップします。")
+            logger.warning("親投稿のテキストが空です。投稿をスキップします。")
             first_valid_post_index = -1
             for i, post_data in enumerate(posts):
                 if post_data.get('text', '').strip():
@@ -32,7 +35,7 @@ def post_thread(posts: List[Dict[str, Any]]) -> bool:
                     break
             
             if first_valid_post_index == -1:
-                print("投稿する有効なテキストがありません。")
+                logger.warning("投稿する有効なテキストがありません。")
                 return False
 
             # 有効な投稿を先頭に移動
@@ -42,6 +45,7 @@ def post_thread(posts: List[Dict[str, Any]]) -> bool:
 
         parent_embed = parent_post_data.get('embed')
         post_ref = client.send_post(text=parent_post_text, embed=parent_embed)
+        logger.info(f"親投稿を投稿しました: {post_ref.uri}")
 
         # 親投稿の参照を保存
         parent_ref = models.ComAtprotoRepoStrongRef.Main(uri=post_ref.uri, cid=post_ref.cid)
@@ -64,15 +68,16 @@ def post_thread(posts: List[Dict[str, Any]]) -> bool:
                     root=root_ref # rootは常に最初の投稿を指す
                 )
             )
+            logger.info(f"リプライを投稿しました: {post_ref.uri}")
             # 次のリプライのために、今投稿したものを親とする
             parent_ref = models.ComAtprotoRepoStrongRef.Main(
                 uri=post_ref.uri,
                 cid=post_ref.cid
             )
 
-        print("Blueskyへのスレッド投稿に成功しました。")
+        logger.info("Blueskyへのスレッド投稿に成功しました。")
         return True
 
     except Exception as e:
-        print(f"Blueskyへの投稿中にエラーが発生しました: {e}")
+        logger.error(f"Blueskyへの投稿中にエラーが発生しました: {e}")
         return False
