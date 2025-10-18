@@ -1,7 +1,11 @@
 import os
+import logging
 from dotenv import load_dotenv
 from google import genai
 from typing import List, Dict
+
+# ロガーの設定
+logger = logging.getLogger(__name__)
 
 # .envファイルから環境変数を読み込む
 load_dotenv()
@@ -33,7 +37,7 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
         )
         ranked_text = response.text
     except Exception as e:
-        print(f"Gemini APIでエラーが発生しました: {e}")
+        logger.error(f"Gemini APIでのランク付け中にエラーが発生しました: {e}")
         return []  # エラー時は空のリストを返す
 
     # AIの出力（テキスト）を解析して、順序付けられた記事リストを再構築
@@ -61,6 +65,7 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
     # AIの出力の解析に失敗した場合、元の順序で返す
     if not ranked_articles:
+        logger.warning("AIの出力の解析に失敗したため、元の順序で記事を返します。")
         return articles
 
     return ranked_articles
@@ -80,5 +85,5 @@ def summarize_article(article_content: str) -> str:
         )
         return response.text.strip()
     except Exception as e:
-        print(f"Gemini APIでの要約中にエラーが発生しました: {e}")
-        return "要約の生成中にエラーが発生しました。"
+        logger.error(f"Gemini APIでの要約中にエラーが発生しました: {e}")
+        return "" # エラー時は空文字を返す

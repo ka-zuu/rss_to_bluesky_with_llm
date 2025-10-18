@@ -4,6 +4,9 @@ import db_manager
 import time
 import requests
 from bs4 import BeautifulSoup
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_article_content(url: str) -> str:
     """URLから記事の本文を取得する"""
@@ -30,7 +33,7 @@ def get_article_content(url: str) -> str:
         return ' '.join(p.get_text() for p in soup.find_all('p'))
 
     except requests.exceptions.RequestException as e:
-        print(f"記事の取得中にエラーが発生しました ({url}): {e}")
+        logger.error(f"記事の取得中にエラーが発生しました ({url}): {e}")
         return ""
 
 
@@ -42,12 +45,12 @@ def fetch_new_articles(rss_urls: List[str]) -> List[Dict[str, str]]:
     """
     new_articles = []
     for url in rss_urls:
-        print(f"フィードを取得中: {url}")
+        logger.info(f"フィードを取得中: {url}")
         feed = feedparser.parse(url)
         for entry in feed.entries:
             article_url = entry.link
             if not db_manager.url_exists(article_url):
-                print(f"新しい記事が見つかりました: {entry.title}")
+                logger.info(f"新しい記事が見つかりました: {entry.title}")
                 # 記事の全文を取得
                 content = get_article_content(article_url)
                 
