@@ -1,12 +1,14 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import os
+import importlib
 
 # `gemini_processor` をインポートする前に、APIキーの存在チェックを無効化
 # テストではAPIをモックするため、実際のキーは不要
 if "GEMINI_API_KEY" not in os.environ:
     os.environ["GEMINI_API_KEY"] = "dummy_key_for_testing"
 
+import gemini_processor
 from gemini_processor import rank_articles, summarize_article
 
 @pytest.fixture
@@ -45,6 +47,8 @@ http://example.com/2
         assert ranked[1]['link'] == 'http://example.com/1'
         assert ranked[2]['link'] == 'http://example.com/2'
         mock_generate_content.assert_called_once()
+        # モデル名がデフォルトまたは設定値であることを確認
+        assert mock_generate_content.call_args[1]['model'] == gemini_processor.GEMINI_MODEL
 
     @patch('gemini_processor.client.models.generate_content')
     def test_rank_articles_api_error(self, mock_generate_content, articles):
@@ -93,6 +97,8 @@ http://example.com/2
         # 結果の検証
         assert summary == summary_text
         mock_generate_content.assert_called_once()
+        # モデル名がデフォルトまたは設定値であることを確認
+        assert mock_generate_content.call_args[1]['model'] == gemini_processor.GEMINI_MODEL
 
     @patch('gemini_processor.client.models.generate_content')
     def test_summarize_article_api_error(self, mock_generate_content):
@@ -111,3 +117,19 @@ http://example.com/2
         """summarize_articleに空のコンテンツを渡す場合のテスト"""
         summary = summarize_article("")
         assert summary == ""
+
+    def test_model_selection_from_env(self):
+        """環境変数からモデル名が読み込まれることを確認するテスト"""
+        # 環境変数を一時的に変更
+        test_model = "gemini-pro-test"
+        with patch.dict(os.environ, {"GEMINI_MODEL": test_model}):
+            # モジュールをリロードして環境変数を読み直させる
+            importlib.reload(gemini_processor)
+            assert gemini_processor.GEMINI_MODEL == test_model
+
+        # 再度リロードしてデフォルトに戻す（後続のテストへの影響を防ぐ）
+        # 同時にデフォルト値が正しいかも確認
+        if "GEMINI_MODEL" in os.environ:
+             del os.environ["GEMINI_MODEL"]
+        importlib.reload(gemini_processor)
+        assert gemini_processor.GEMINI_MODEL == "gemma-3-27b"
