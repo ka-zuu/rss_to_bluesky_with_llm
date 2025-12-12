@@ -14,6 +14,9 @@ load_dotenv()
 if not os.getenv("GEMINI_API_KEY"):
     raise ValueError("GEMINI_API_KEYが設定されていません。.envファイルを確認してください。")
 
+# 使用するGeminiのモデル名を取得 (デフォルトは gemma-3-27b)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemma-3-27b")
+
 # クライアントをモジュールレベルで初期化
 # APIキーは環境変数 `GEMINI_API_KEY` から自動的に読み込まれる
 client = genai.Client()
@@ -32,7 +35,7 @@ def rank_articles(articles: List[Dict[str, str]]) -> List[Dict[str, str]]:
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=prompt
         )
         ranked_text = response.text
@@ -80,7 +83,7 @@ def summarize_article(article_content: str) -> str:
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=prompt
         )
         return response.text.strip()
