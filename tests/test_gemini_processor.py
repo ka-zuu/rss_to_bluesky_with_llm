@@ -132,4 +132,4 @@ http://example.com/2
         if "GEMINI_MODEL" in os.environ:
              del os.environ["GEMINI_MODEL"]
         importlib.reload(gemini_processor)
-        assert gemini_processor.GEMINI_MODEL == "gemma-3-27b"
+        assert gemini_processor.GEMINI_MODEL == "gemma-3-27b-it"

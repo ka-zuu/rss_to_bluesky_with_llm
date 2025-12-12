@@ -14,8 +14,8 @@ load_dotenv()
 if not os.getenv("GEMINI_API_KEY"):
     raise ValueError("GEMINI_API_KEYが設定されていません。.envファイルを確認してください。")
 
-# 使用するGeminiのモデル名を取得 (デフォルトは gemma-3-27b)
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemma-3-27b")
+# 使用するGeminiのモデル名を取得 (デフォルトは gemma-3-27b-it)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemma-3-27b-it")
 
 # クライアントをモジュールレベルで初期化
 # APIキーは環境変数 `GEMINI_API_KEY` から自動的に読み込まれる
