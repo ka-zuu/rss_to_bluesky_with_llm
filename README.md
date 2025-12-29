@@ -71,9 +71,10 @@ Linuxサーバーなどで定期的に実行したい場合は、cronジョブ�
 **注意:** cronから実行する場合、仮想環境内のPythonを指定する必要があります。
 
 例えば、3時間ごとにスクリプトを実行するには、`crontab -e` で以下の行を追加します。`/path/to/your/script` の部分は、実際のプロジェクトの絶対パスに置き換えてください。
+スクリプト内で相対パス（`.env`ファイルやログディレクトリなど）を使用しているため、`cd`コマンドでディレクトリを移動してから実行することをお勧めします。
 
 ```crontab
-0 */3 * * * /path/to/your/script/venv/bin/python /path/to/your/script/main.py >> /path/to/your/script/cron.log 2>&1
+0 */3 * * * cd /path/to/your/script && ./venv/bin/python main.py >> cron.log 2>&1
 ```
 
 ## テストの実行
